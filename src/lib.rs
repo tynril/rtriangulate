@@ -21,8 +21,14 @@ impl Point {
 pub struct Triangle(usize, usize, usize);
 
 /// An edge, represented by indexes into a vertice list.
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 struct Edge(usize, usize);
+
+impl PartialEq for Edge {
+    fn eq(&self, other: &Edge) -> bool {
+        (self.0 == other.1 && self.1 == other.0) || (self.0 == other.0 && self.1 == other.1)
+    }
+}
 
 /// Triangulate a given set of points. The returned triangles are indices into the  list of points.
 pub fn triangulate(points: &mut Vec<Point>) -> Vec<Triangle> {
@@ -80,23 +86,15 @@ pub fn triangulate(points: &mut Vec<Point>) -> Vec<Triangle> {
         {
             let mut j = 0;
             while j < triangles.len() {
-                println!("in_circle {:?} -> {:?} {:?} {:?}",
-                         points[i],
-                         points[triangles[j].0],
-                         points[triangles[j].1],
-                         points[triangles[j].2]);
                 if in_circle(points[i],
                              points[triangles[j].0],
                              points[triangles[j].1],
                              points[triangles[j].2]) {
-                    println!("YES");
                     edges.push(Edge(triangles[j].0, triangles[j].1));
                     edges.push(Edge(triangles[j].1, triangles[j].2));
                     edges.push(Edge(triangles[j].2, triangles[j].0));
                     triangles.remove(j);
-                    println!("Triangle remove {}", j);
                 } else {
-                    println!("Nope");
                     j += 1;
                 }
             }
@@ -108,7 +106,8 @@ pub fn triangulate(points: &mut Vec<Point>) -> Vec<Triangle> {
         }
 
         // Remove duplicate edges.
-        {
+
+        if edges.len() > 1 {
             let mut j = edges.len() - 2;
             loop {
                 let mut k = edges.len() - 1;
@@ -136,9 +135,7 @@ pub fn triangulate(points: &mut Vec<Point>) -> Vec<Triangle> {
                 if triangles.len() >= max_triangles {
                     panic!("Exceeded maximum edges");
                 }
-                let new_tri = Triangle(edges[j].0, edges[j].1, i);
-                println!("Add triangle {:?}", new_tri);
-                triangles.push(new_tri);
+                triangles.push(Triangle(edges[j].0, edges[j].1, i));
                 j += 1;
             }
         }
@@ -168,9 +165,9 @@ pub fn triangulate(points: &mut Vec<Point>) -> Vec<Triangle> {
 
 /// Returns true if the first point lies inside (or on the edge of) the circumcircle made from the
 /// three other points.
-fn in_circle(p: Point, pc1: Point, pc2: Point, pc3: Point) -> bool {
+pub fn in_circle(p: Point, pc1: Point, pc2: Point, pc3: Point) -> bool {
     // Handle coincident points.
-    if (pc1.y - pc2.y).abs() < std::f64::EPSILON && (pc2.y - pc3.y) < std::f64::EPSILON {
+    if (pc1.y - pc2.y).abs() < std::f64::EPSILON && (pc2.y - pc3.y).abs() < std::f64::EPSILON {
         return false;
     }
 
@@ -252,5 +249,39 @@ mod test {
 
         assert_eq!(tris.len(), 1);
         assert_eq!(tris[..], [Triangle(0, 1, 2)][..]);
+    }
+
+    #[test]
+    fn test_complex() {
+        let mut points = vec![Point::new(601.0, 535.0),
+                              Point::new(895.0, 666.0),
+                              Point::new(876.0, 110.0),
+                              Point::new(448.0, 36.0),
+                              Point::new(829.0, 512.0),
+                              Point::new(742.0, 363.0),
+                              Point::new(267.0, 152.0),
+                              Point::new(331.0, 244.0),
+                              Point::new(623.0, 335.0),
+                              Point::new(245.0, 119.0),
+                              Point::new(104.0, 522.0),
+                              Point::new(285.0, 561.0),
+                              Point::new(282.0, 17.0),
+                              Point::new(836.0, 20.0),
+                              Point::new(667.0, 462.0),
+                              Point::new(65.0, 216.0),
+                              Point::new(839.0, 178.0),
+                              Point::new(11.0, 264.0),
+                              Point::new(181.0, 479.0),
+                              Point::new(168.0, 90.0),
+                              Point::new(348.0, 504.0),
+                              Point::new(688.0, 605.0),
+                              Point::new(329.0, 432.0),
+                              Point::new(627.0, 461.0),
+                              Point::new(450.0, 514.0)];
+
+        let tris: Vec<Triangle> = triangulate(&mut points);
+
+        assert_eq!(tris.len(), 39);
+        // assert_eq!(tris[..], [Triangle(0, 1, 2)][..]);
     }
 }
