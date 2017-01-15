@@ -165,7 +165,7 @@ pub fn triangulate(points: &mut Vec<Point>) -> Vec<Triangle> {
 
 /// Returns true if the first point lies inside (or on the edge of) the circumcircle made from the
 /// three other points.
-pub fn in_circle(p: Point, pc1: Point, pc2: Point, pc3: Point) -> bool {
+fn in_circle(p: Point, pc1: Point, pc2: Point, pc3: Point) -> bool {
     // Handle coincident points.
     if (pc1.y - pc2.y).abs() < std::f64::EPSILON && (pc2.y - pc3.y).abs() < std::f64::EPSILON {
         return false;
@@ -281,7 +281,47 @@ mod test {
 
         let tris: Vec<Triangle> = triangulate(&mut points);
 
+        let expected_tris = [Triangle(1, 2, 4),
+                             Triangle(3, 6, 7),
+                             Triangle(3, 7, 8),
+                             Triangle(6, 3, 12),
+                             Triangle(9, 6, 12),
+                             Triangle(12, 3, 13),
+                             Triangle(4, 5, 14),
+                             Triangle(5, 8, 14),
+                             Triangle(7, 6, 15),
+                             Triangle(4, 2, 16),
+                             Triangle(5, 4, 16),
+                             Triangle(8, 5, 16),
+                             Triangle(3, 8, 16),
+                             Triangle(13, 3, 16),
+                             Triangle(2, 13, 16),
+                             Triangle(10, 11, 18),
+                             Triangle(7, 15, 18),
+                             Triangle(15, 17, 18),
+                             Triangle(17, 10, 18),
+                             Triangle(6, 9, 19),
+                             Triangle(15, 6, 19),
+                             Triangle(9, 12, 19),
+                             Triangle(17, 15, 19),
+                             Triangle(1, 4, 21),
+                             Triangle(4, 14, 21),
+                             Triangle(14, 0, 21),
+                             Triangle(8, 7, 22),
+                             Triangle(7, 18, 22),
+                             Triangle(18, 11, 22),
+                             Triangle(11, 20, 22),
+                             Triangle(0, 14, 23),
+                             Triangle(14, 8, 23),
+                             Triangle(20, 11, 24),
+                             Triangle(11, 21, 24),
+                             Triangle(21, 0, 24),
+                             Triangle(8, 22, 24),
+                             Triangle(23, 8, 24),
+                             Triangle(0, 23, 24),
+                             Triangle(22, 20, 24)];
+
         assert_eq!(tris.len(), 39);
-        // assert_eq!(tris[..], [Triangle(0, 1, 2)][..]);
+        assert_eq!(tris[..], expected_tris[..]);
     }
 }
