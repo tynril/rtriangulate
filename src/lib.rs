@@ -25,13 +25,29 @@ pub struct Triangle(usize, usize, usize);
 struct Edge(usize, usize);
 
 impl PartialEq for Edge {
+    /// Compare edges regardless of directionality.
     fn eq(&self, other: &Edge) -> bool {
         (self.0 == other.1 && self.1 == other.0) || (self.0 == other.0 && self.1 == other.1)
     }
 }
 
+/// An indexable view over two slices.
+struct TwoSlices<'a, T: 'a>(&'a [T], &'a [T]);
+
+use std::ops::Index;
+impl<'a, T: 'a> Index<usize> for TwoSlices<'a, T> {
+    type Output = T;
+    fn index(&self, index: usize) -> &T {
+        if index < self.0.len() {
+            &self.0[index]
+        } else {
+            &self.1[index - self.0.len()]
+        }
+    }
+}
+
 /// Triangulate a given set of points. The returned triangles are indices into the  list of points.
-pub fn triangulate(points: &mut Vec<Point>) -> Vec<Triangle> {
+pub fn triangulate(points: &[Point]) -> Vec<Triangle> {
     // Make sure we have enough points to do a triangulation.
     let points_count = points.len();
     if points_count < 3 {
@@ -42,7 +58,7 @@ pub fn triangulate(points: &mut Vec<Point>) -> Vec<Triangle> {
     // Find the bounds of the space that contains our points.
     let mut min_point = points[0];
     let mut max_point = min_point;
-    for point in points.iter() {
+    for point in points {
         if point.x > max_point.x {
             max_point.x = point.x;
         }
@@ -71,9 +87,12 @@ pub fn triangulate(points: &mut Vec<Point>) -> Vec<Triangle> {
     };
 
     // Compute the supertriangle, which encompasses all the input points.
-    points.push(Point::new(mid_point.x - 2.0 * delta_max, mid_point.y - delta_max));
-    points.push(Point::new(mid_point.x, mid_point.y + 2.0 * delta_max));
-    points.push(Point::new(mid_point.x + 2.0 * delta_max, mid_point.y - delta_max));
+    let supertriangle = [Point::new(mid_point.x - 2.0 * delta_max, mid_point.y - delta_max),
+                         Point::new(mid_point.x, mid_point.y + 2.0 * delta_max),
+                         Point::new(mid_point.x + 2.0 * delta_max, mid_point.y - delta_max)];
+
+    // Make an iterable slice of our points and the supertriangle.
+    let all_points = TwoSlices(points, &supertriangle);
 
     // The list of triangles we're gonna fill, initialized with the super-triangle.
     let mut triangles = vec![Triangle(points_count, points_count + 1, points_count + 2)];
@@ -86,10 +105,10 @@ pub fn triangulate(points: &mut Vec<Point>) -> Vec<Triangle> {
         {
             let mut j = 0;
             while j < triangles.len() {
-                if in_circle(points[i],
-                             points[triangles[j].0],
-                             points[triangles[j].1],
-                             points[triangles[j].2]) {
+                if in_circle(all_points[i],
+                             all_points[triangles[j].0],
+                             all_points[triangles[j].1],
+                             all_points[triangles[j].2]) {
                     edges.push(Edge(triangles[j].0, triangles[j].1));
                     edges.push(Edge(triangles[j].1, triangles[j].2));
                     edges.push(Edge(triangles[j].2, triangles[j].0));
@@ -100,13 +119,7 @@ pub fn triangulate(points: &mut Vec<Point>) -> Vec<Triangle> {
             }
         }
 
-        // Continue if we've exhausted the array.
-        if i >= points_count {
-            continue;
-        }
-
         // Remove duplicate edges.
-
         if edges.len() > 1 {
             let mut j = edges.len() - 2;
             loop {
@@ -154,11 +167,6 @@ pub fn triangulate(points: &mut Vec<Point>) -> Vec<Triangle> {
             break;
         }
     }
-
-    // Remove the supertriangle vertices
-    points.pop();
-    points.pop();
-    points.pop();
 
     triangles
 }
@@ -215,10 +223,9 @@ mod test {
 
     #[test]
     fn test_simple() {
-        let mut points =
-            vec![Point::new(10.0, 10.0), Point::new(25.0, 15.0), Point::new(15.0, 25.0)];
+        let points = vec![Point::new(10.0, 10.0), Point::new(25.0, 15.0), Point::new(15.0, 25.0)];
 
-        let tris: Vec<Triangle> = triangulate(&mut points);
+        let tris: Vec<Triangle> = triangulate(&points);
 
         assert_eq!(tris.len(), 1);
         assert_eq!(tris[..], [Triangle(1, 0, 2)][..]);
@@ -226,13 +233,13 @@ mod test {
 
     #[test]
     fn test_four_triangles() {
-        let mut points = vec![Point::new(10.0, 10.0),
-                              Point::new(25.0, 15.0),
-                              Point::new(15.0, 25.0),
-                              Point::new(30.0, 25.0),
-                              Point::new(40.0, 15.0)];
+        let points = vec![Point::new(10.0, 10.0),
+                          Point::new(25.0, 15.0),
+                          Point::new(15.0, 25.0),
+                          Point::new(30.0, 25.0),
+                          Point::new(40.0, 15.0)];
 
-        let tris: Vec<Triangle> = triangulate(&mut points);
+        let tris: Vec<Triangle> = triangulate(&points);
         assert_eq!(tris.len(), 4);
 
         let expected_tris =
@@ -242,10 +249,9 @@ mod test {
 
     #[test]
     fn test_overlapping() {
-        let mut points =
-            vec![Point::new(10.0, 10.0), Point::new(25.0, 15.0), Point::new(25.0, 15.0)];
+        let points = vec![Point::new(10.0, 10.0), Point::new(25.0, 15.0), Point::new(25.0, 15.0)];
 
-        let tris: Vec<Triangle> = triangulate(&mut points);
+        let tris: Vec<Triangle> = triangulate(&points);
 
         assert_eq!(tris.len(), 1);
         assert_eq!(tris[..], [Triangle(0, 1, 2)][..]);
@@ -253,33 +259,33 @@ mod test {
 
     #[test]
     fn test_complex() {
-        let mut points = vec![Point::new(601.0, 535.0),
-                              Point::new(895.0, 666.0),
-                              Point::new(876.0, 110.0),
-                              Point::new(448.0, 36.0),
-                              Point::new(829.0, 512.0),
-                              Point::new(742.0, 363.0),
-                              Point::new(267.0, 152.0),
-                              Point::new(331.0, 244.0),
-                              Point::new(623.0, 335.0),
-                              Point::new(245.0, 119.0),
-                              Point::new(104.0, 522.0),
-                              Point::new(285.0, 561.0),
-                              Point::new(282.0, 17.0),
-                              Point::new(836.0, 20.0),
-                              Point::new(667.0, 462.0),
-                              Point::new(65.0, 216.0),
-                              Point::new(839.0, 178.0),
-                              Point::new(11.0, 264.0),
-                              Point::new(181.0, 479.0),
-                              Point::new(168.0, 90.0),
-                              Point::new(348.0, 504.0),
-                              Point::new(688.0, 605.0),
-                              Point::new(329.0, 432.0),
-                              Point::new(627.0, 461.0),
-                              Point::new(450.0, 514.0)];
+        let points = vec![Point::new(601.0, 535.0),
+                          Point::new(895.0, 666.0),
+                          Point::new(876.0, 110.0),
+                          Point::new(448.0, 36.0),
+                          Point::new(829.0, 512.0),
+                          Point::new(742.0, 363.0),
+                          Point::new(267.0, 152.0),
+                          Point::new(331.0, 244.0),
+                          Point::new(623.0, 335.0),
+                          Point::new(245.0, 119.0),
+                          Point::new(104.0, 522.0),
+                          Point::new(285.0, 561.0),
+                          Point::new(282.0, 17.0),
+                          Point::new(836.0, 20.0),
+                          Point::new(667.0, 462.0),
+                          Point::new(65.0, 216.0),
+                          Point::new(839.0, 178.0),
+                          Point::new(11.0, 264.0),
+                          Point::new(181.0, 479.0),
+                          Point::new(168.0, 90.0),
+                          Point::new(348.0, 504.0),
+                          Point::new(688.0, 605.0),
+                          Point::new(329.0, 432.0),
+                          Point::new(627.0, 461.0),
+                          Point::new(450.0, 514.0)];
 
-        let tris: Vec<Triangle> = triangulate(&mut points);
+        let tris: Vec<Triangle> = triangulate(&points);
 
         let expected_tris = [Triangle(1, 2, 4),
                              Triangle(3, 6, 7),
