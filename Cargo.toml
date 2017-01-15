@@ -1,0 +1,10 @@
+[package]
+name = "rtriangulate"
+version = "0.1.0"
+authors = ["Samuel Loretan <tynril@gmail.com>"]
+
+[dependencies]
+
+[lib]
+name = "rtriangulate"
+path = "src/lib.rs"
