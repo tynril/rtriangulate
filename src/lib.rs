@@ -21,7 +21,7 @@ impl Point {
 pub struct Triangle(usize, usize, usize);
 
 /// An edge, represented by indexes into a vertice list.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Edge(usize, usize);
 
 impl PartialEq for Edge {
@@ -46,7 +46,7 @@ impl<'a, T: 'a> Index<usize> for TwoSlices<'a, T> {
     }
 }
 
-/// Triangulate a given set of points. The returned triangles are indices into the  list of points.
+/// Triangulate a given set of points. The returned triangles are indices into the list of points.
 pub fn triangulate(points: &[Point]) -> Vec<Triangle> {
     // Make sure we have enough points to do a triangulation.
     let points_count = points.len();
@@ -56,35 +56,14 @@ pub fn triangulate(points: &[Point]) -> Vec<Triangle> {
     let max_triangles = points_count * 4;
 
     // Find the bounds of the space that contains our points.
-    let mut min_point = points[0];
-    let mut max_point = min_point;
-    for point in points {
-        if point.x > max_point.x {
-            max_point.x = point.x;
-        }
-        if point.y > max_point.y {
-            max_point.y = point.y;
-        }
-        if point.x < min_point.x {
-            min_point.x = point.x;
-        }
-        if point.y < min_point.y {
-            min_point.y = point.y;
-        }
-    }
-    let delta_point = Point {
-        x: max_point.x - min_point.x,
-        y: max_point.y - min_point.y,
-    };
-    let delta_max = if delta_point.x > delta_point.y {
-        delta_point.x
-    } else {
-        delta_point.y
-    };
-    let mid_point = Point {
-        x: (max_point.x + min_point.x) * 0.5,
-        y: (max_point.y + min_point.y) * 0.5,
-    };
+    let (min_point, max_point) = points.iter().fold((points[0], points[0]), |acc, &p| {
+        (Point::new(acc.0.x.min(p.x), acc.0.y.min(p.y)),
+         Point::new(acc.1.x.max(p.x), acc.1.y.max(p.y)))
+    });
+    let delta_point = Point::new(max_point.x - min_point.x, max_point.y - min_point.y);
+    let delta_max = delta_point.x.max(delta_point.y);
+    let mid_point = Point::new((max_point.x + min_point.x) * 0.5,
+                               (max_point.y + min_point.y) * 0.5);
 
     // Compute the supertriangle, which encompasses all the input points.
     let supertriangle = [Point::new(mid_point.x - 2.0 * delta_max, mid_point.y - delta_max),
@@ -120,25 +99,20 @@ pub fn triangulate(points: &[Point]) -> Vec<Triangle> {
         }
 
         // Remove duplicate edges.
-        if edges.len() > 1 {
-            let mut j = edges.len() - 2;
-            loop {
-                let mut k = edges.len() - 1;
-                while k >= j + 1 {
-                    if edges[j] == edges[k] {
-                        edges.remove(k);
-                        edges.remove(j);
-                        k -= 2;
-                    } else {
-                        k -= 1;
-                    }
-                }
-                if j > 0 {
-                    j -= 1;
-                } else {
+        let mut to_remove: Vec<usize> = Vec::<usize>::new();
+        let edges_count = edges.len();
+        for (j, ref e1) in edges.iter().enumerate().rev().skip(1) {
+            for (k, ref e2) in edges.iter().enumerate().rev().take(edges_count - j - 1) {
+                if e1 == e2 {
+                    to_remove.push(k);
+                    to_remove.push(j);
                     break;
                 }
             }
+        }
+        to_remove.sort();
+        for j in to_remove.iter().rev() {
+            edges.remove(*j);
         }
 
         // Form new triangles from the remaining edges. Edges are added in clockwise order.
