@@ -99,7 +99,7 @@ pub fn triangulate(points: &[Point]) -> Vec<Triangle> {
         }
 
         // Remove duplicate edges.
-        let mut to_remove: Vec<usize> = Vec::<usize>::new();
+        let mut to_remove = Vec::<usize>::new();
         let edges_count = edges.len();
         for (j, ref e1) in edges.iter().enumerate().rev().skip(1) {
             for (k, ref e2) in edges.iter().enumerate().rev().take(edges_count - j - 1) {
@@ -129,18 +129,7 @@ pub fn triangulate(points: &[Point]) -> Vec<Triangle> {
     }
 
     // Remove triangles with supertriangle vertices
-    let mut i = triangles.len() - 1;
-    loop {
-        if triangles[i].0 >= points_count || triangles[i].1 >= points_count ||
-           triangles[i].2 >= points_count {
-            triangles.remove(i);
-        }
-        if i > 0 {
-            i -= 1;
-        } else {
-            break;
-        }
-    }
+    triangles.retain(|ref t| t.0 < points_count && t.1 < points_count && t.2 < points_count);
 
     triangles
 }
