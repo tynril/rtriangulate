@@ -81,10 +81,8 @@ pub fn triangulate(points: &[Point]) -> Vec<Triangle> {
         // Storage for the edges
         let mut edges = Vec::<Edge>::new();
         triangles.retain(|ref t| {
-            if in_circle(all_points[i],
-                         all_points[t.0],
-                         all_points[t.1],
-                         all_points[t.2]) {
+            if in_circumcircle(all_points[i],
+                               (all_points[t.0], all_points[t.1], all_points[t.2])) {
                 edges.extend([Edge(t.0, t.1), Edge(t.1, t.2), Edge(t.2, t.0)].iter().cloned());
                 false
             } else {
@@ -118,50 +116,48 @@ pub fn triangulate(points: &[Point]) -> Vec<Triangle> {
     triangles
 }
 
-/// Returns true if the first point lies inside (or on the edge of) the circumcircle made from the
-/// three other points.
-fn in_circle(p: Point, pc1: Point, pc2: Point, pc3: Point) -> bool {
-    // Handle coincident points.
-    if (pc1.y - pc2.y).abs() < std::f64::EPSILON && (pc2.y - pc3.y).abs() < std::f64::EPSILON {
+/// Returns true if the point lies inside (or on the edge of) the circumcircle made from the
+/// triangle.
+fn in_circumcircle(point: Point, triangle: (Point, Point, Point)) -> bool {
+    // Handle coincident points in the input triangle.
+    if (triangle.0.y - triangle.1.y).abs() < std::f64::EPSILON &&
+       (triangle.1.y - triangle.2.y).abs() < std::f64::EPSILON {
         return false;
     }
 
-    let m1: f64;
-    let m2: f64;
-    let mx1: f64;
-    let mx2: f64;
-    let my1: f64;
-    let my2: f64;
-    let xc: f64;
-    let yc: f64;
-
-    if (pc2.y - pc1.y).abs() < std::f64::EPSILON {
-        m2 = 0.0 - (pc3.x - pc2.x) / (pc3.y - pc2.y);
-        mx2 = (pc2.x + pc3.x) * 0.5;
-        my2 = (pc2.y + pc3.y) * 0.5;
-        xc = (pc2.x + pc1.x) * 0.5;
-        yc = m2 * (xc - mx2) + my2;
-    } else if (pc3.y - pc2.y).abs() < std::f64::EPSILON {
-        m1 = 0.0 - (pc2.x - pc1.x) / (pc2.y - pc1.y);
-        mx1 = (pc1.x + pc2.x) * 0.5;
-        my1 = (pc1.y + pc2.y) * 0.5;
-        xc = (pc3.x + pc2.x) * 0.5;
-        yc = m1 * (xc - mx1) + my1;
+    // Compute the center of the triangle's circumcircle.
+    let mut circumcircle_center = Point::new(0.0, 0.0);
+    if (triangle.1.y - triangle.0.y).abs() < std::f64::EPSILON {
+        let mid = 0.0 - (triangle.2.x - triangle.1.x) / (triangle.2.y - triangle.1.y);
+        let mid_point = Point::new((triangle.1.x + triangle.2.x) * 0.5,
+                                   (triangle.1.y + triangle.2.y) * 0.5);
+        circumcircle_center.x = (triangle.1.x + triangle.0.x) * 0.5;
+        circumcircle_center.y = mid * (circumcircle_center.x - mid_point.x) + mid_point.y;
+    } else if (triangle.2.y - triangle.1.y).abs() < std::f64::EPSILON {
+        let mid = 0.0 - (triangle.1.x - triangle.0.x) / (triangle.1.y - triangle.0.y);
+        let mid_point = Point::new((triangle.0.x + triangle.1.x) * 0.5,
+                                   (triangle.0.y + triangle.1.y) * 0.5);
+        circumcircle_center.x = (triangle.2.x + triangle.1.x) * 0.5;
+        circumcircle_center.y = mid * (circumcircle_center.x - mid_point.x) + mid_point.y;
     } else {
-        m1 = 0.0 - (pc2.x - pc1.x) / (pc2.y - pc1.y);
-        m2 = 0.0 - (pc3.x - pc2.x) / (pc3.y - pc2.y);
-        mx1 = (pc1.x + pc2.x) * 0.5;
-        mx2 = (pc2.x + pc3.x) * 0.5;
-        my1 = (pc1.y + pc2.y) * 0.5;
-        my2 = (pc2.y + pc3.y) * 0.5;
-        xc = (m1 * mx1 - m2 * mx2 + my2 - my1) / (m1 - m2);
-        yc = m1 * (xc - mx1) + my1;
+        let mid1 = 0.0 - (triangle.1.x - triangle.0.x) / (triangle.1.y - triangle.0.y);
+        let mid2 = 0.0 - (triangle.2.x - triangle.1.x) / (triangle.2.y - triangle.1.y);
+        let mid_point1 = Point::new((triangle.0.x + triangle.1.x) * 0.5,
+                                    (triangle.0.y + triangle.1.y) * 0.5);
+        let mid_point2 = Point::new((triangle.1.x + triangle.2.x) * 0.5,
+                                    (triangle.1.y + triangle.2.y) * 0.5);
+        circumcircle_center.x = (mid1 * mid_point1.x - mid2 * mid_point2.x + mid_point2.y -
+                                 mid_point1.y) / (mid1 - mid2);
+        circumcircle_center.y = mid1 * (circumcircle_center.x - mid_point1.x) + mid_point1.y;
     }
 
-    let rsqr = (pc2.x - xc).powf(2.0) + (pc2.y - yc).powf(2.0);
-    let drsqr = (p.x - xc).powf(2.0) + (p.y - yc).powf(2.0);
+    // Check the radius of the circumcircle against the point's distance from its center.
+    let circumcircle_radius_sq = (triangle.1.x - circumcircle_center.x).powf(2.0) +
+                                 (triangle.1.y - circumcircle_center.y).powf(2.0);
+    let point_distance_sq = (point.x - circumcircle_center.x).powf(2.0) +
+                            (point.y - circumcircle_center.y).powf(2.0);
 
-    drsqr <= rsqr
+    point_distance_sq <= circumcircle_radius_sq
 }
 
 #[cfg(test)]
