@@ -116,16 +116,7 @@ pub fn triangulate(points: &[Point]) -> Vec<Triangle> {
         }
 
         // Form new triangles from the remaining edges. Edges are added in clockwise order.
-        {
-            let mut j = 0;
-            while j < edges.len() {
-                if triangles.len() >= max_triangles {
-                    panic!("Exceeded maximum edges");
-                }
-                triangles.push(Triangle(edges[j].0, edges[j].1, i));
-                j += 1;
-            }
-        }
+        triangles.extend(edges.iter().map(|ref e| Triangle(e.0, e.1, i)));
     }
 
     // Remove triangles with supertriangle vertices
