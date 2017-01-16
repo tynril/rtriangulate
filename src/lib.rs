@@ -161,13 +161,12 @@ fn in_circumcircle(point: Point, triangle: (Point, Point, Point)) -> bool {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::{Point, Triangle, triangulate};
 
     #[test]
     fn test_simple() {
-        let points = vec![Point::new(10.0, 10.0), Point::new(25.0, 15.0), Point::new(15.0, 25.0)];
-
+        let points = [Point::new(10.0, 10.0), Point::new(25.0, 15.0), Point::new(15.0, 25.0)];
         let tris: Vec<Triangle> = triangulate(&points);
 
         assert_eq!(tris.len(), 1);
@@ -176,11 +175,11 @@ mod test {
 
     #[test]
     fn test_four_triangles() {
-        let points = vec![Point::new(10.0, 10.0),
-                          Point::new(25.0, 15.0),
-                          Point::new(15.0, 25.0),
-                          Point::new(30.0, 25.0),
-                          Point::new(40.0, 15.0)];
+        let points = [Point::new(10.0, 10.0),
+                      Point::new(25.0, 15.0),
+                      Point::new(15.0, 25.0),
+                      Point::new(30.0, 25.0),
+                      Point::new(40.0, 15.0)];
 
         let tris: Vec<Triangle> = triangulate(&points);
         assert_eq!(tris.len(), 4);
@@ -202,31 +201,31 @@ mod test {
 
     #[test]
     fn test_complex() {
-        let points = vec![Point::new(601.0, 535.0),
-                          Point::new(895.0, 666.0),
-                          Point::new(876.0, 110.0),
-                          Point::new(448.0, 36.0),
-                          Point::new(829.0, 512.0),
-                          Point::new(742.0, 363.0),
-                          Point::new(267.0, 152.0),
-                          Point::new(331.0, 244.0),
-                          Point::new(623.0, 335.0),
-                          Point::new(245.0, 119.0),
-                          Point::new(104.0, 522.0),
-                          Point::new(285.0, 561.0),
-                          Point::new(282.0, 17.0),
-                          Point::new(836.0, 20.0),
-                          Point::new(667.0, 462.0),
-                          Point::new(65.0, 216.0),
-                          Point::new(839.0, 178.0),
-                          Point::new(11.0, 264.0),
-                          Point::new(181.0, 479.0),
-                          Point::new(168.0, 90.0),
-                          Point::new(348.0, 504.0),
-                          Point::new(688.0, 605.0),
-                          Point::new(329.0, 432.0),
-                          Point::new(627.0, 461.0),
-                          Point::new(450.0, 514.0)];
+        let points = [Point::new(601.0, 535.0),
+                      Point::new(895.0, 666.0),
+                      Point::new(876.0, 110.0),
+                      Point::new(448.0, 36.0),
+                      Point::new(829.0, 512.0),
+                      Point::new(742.0, 363.0),
+                      Point::new(267.0, 152.0),
+                      Point::new(331.0, 244.0),
+                      Point::new(623.0, 335.0),
+                      Point::new(245.0, 119.0),
+                      Point::new(104.0, 522.0),
+                      Point::new(285.0, 561.0),
+                      Point::new(282.0, 17.0),
+                      Point::new(836.0, 20.0),
+                      Point::new(667.0, 462.0),
+                      Point::new(65.0, 216.0),
+                      Point::new(839.0, 178.0),
+                      Point::new(11.0, 264.0),
+                      Point::new(181.0, 479.0),
+                      Point::new(168.0, 90.0),
+                      Point::new(348.0, 504.0),
+                      Point::new(688.0, 605.0),
+                      Point::new(329.0, 432.0),
+                      Point::new(627.0, 461.0),
+                      Point::new(450.0, 514.0)];
 
         let tris: Vec<Triangle> = triangulate(&points);
 
