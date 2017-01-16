@@ -38,10 +38,11 @@ use std::ops::Index;
 impl<'a, T: 'a> Index<usize> for TwoSlices<'a, T> {
     type Output = T;
     fn index(&self, index: usize) -> &T {
-        if index < self.0.len() {
+        let first_slice_len = self.0.len();
+        if index < first_slice_len {
             &self.0[index]
         } else {
-            &self.1[index - self.0.len()]
+            &self.1[index - first_slice_len]
         }
     }
 }
@@ -53,7 +54,6 @@ pub fn triangulate(points: &[Point]) -> Vec<Triangle> {
     if points_count < 3 {
         panic!("Can't triangulate less than three points.")
     }
-    let max_triangles = points_count * 4;
 
     // Find the bounds of the space that contains our points.
     let (min_point, max_point) = points.iter().fold((points[0], points[0]), |acc, &p| {
@@ -80,23 +80,17 @@ pub fn triangulate(points: &[Point]) -> Vec<Triangle> {
     for i in 0..points_count {
         // Storage for the edges
         let mut edges = Vec::<Edge>::new();
-
-        {
-            let mut j = 0;
-            while j < triangles.len() {
-                if in_circle(all_points[i],
-                             all_points[triangles[j].0],
-                             all_points[triangles[j].1],
-                             all_points[triangles[j].2]) {
-                    edges.push(Edge(triangles[j].0, triangles[j].1));
-                    edges.push(Edge(triangles[j].1, triangles[j].2));
-                    edges.push(Edge(triangles[j].2, triangles[j].0));
-                    triangles.remove(j);
-                } else {
-                    j += 1;
-                }
+        triangles.retain(|ref t| {
+            if in_circle(all_points[i],
+                         all_points[t.0],
+                         all_points[t.1],
+                         all_points[t.2]) {
+                edges.extend([Edge(t.0, t.1), Edge(t.1, t.2), Edge(t.2, t.0)].iter().cloned());
+                false
+            } else {
+                true
             }
-        }
+        });
 
         // Remove duplicate edges.
         let mut to_remove = Vec::<usize>::new();
@@ -104,8 +98,7 @@ pub fn triangulate(points: &[Point]) -> Vec<Triangle> {
         for (j, ref e1) in edges.iter().enumerate().rev().skip(1) {
             for (k, ref e2) in edges.iter().enumerate().rev().take(edges_count - j - 1) {
                 if e1 == e2 {
-                    to_remove.push(k);
-                    to_remove.push(j);
+                    to_remove.extend([j, k].iter().cloned());
                     break;
                 }
             }
