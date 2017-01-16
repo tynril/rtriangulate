@@ -5,8 +5,8 @@
 /// A two dimentional point.
 #[derive(Clone, Copy, Debug)]
 pub struct Point {
-    x: f64,
-    y: f64,
+    pub x: f64,
+    pub y: f64,
 }
 
 impl Point {
@@ -56,7 +56,7 @@ pub fn triangulate(points: &[Point]) -> Vec<Triangle> {
     }
 
     // Find the bounds of the space that contains our points.
-    let (min_point, max_point) = points.iter().fold((points[0], points[0]), |acc, &p| {
+    let (min_point, max_point) = points.iter().fold((points[0], points[0]), |acc, ref p| {
         (Point::new(acc.0.x.min(p.x), acc.0.y.min(p.y)),
          Point::new(acc.1.x.max(p.x), acc.1.y.max(p.y)))
     });
@@ -90,7 +90,7 @@ pub fn triangulate(points: &[Point]) -> Vec<Triangle> {
             }
         });
 
-        // Remove duplicate edges.
+        // Remove duplicate edges (both pairs).
         let mut to_remove = Vec::<usize>::new();
         let edges_count = edges.len();
         for (j, ref e1) in edges.iter().enumerate().rev().skip(1) {

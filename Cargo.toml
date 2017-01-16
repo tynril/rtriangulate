@@ -5,6 +5,13 @@ authors = ["Samuel Loretan <tynril@gmail.com>"]
 
 [dependencies]
 
+[dev-dependencies]
+bencher = "0.1.2"
+
+[[bench]]
+name = "triangulate"
+harness = false
+
 [lib]
 name = "rtriangulate"
 path = "src/lib.rs"
