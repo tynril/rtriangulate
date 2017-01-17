@@ -16,9 +16,37 @@ impl Point {
     }
 }
 
+use std::cmp::Ordering;
+
+impl PartialEq for Point {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y
+    }
+}
+
+impl Eq for Point {}
+
+impl Ord for Point {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match self.partial_cmp(other) {
+            Some(o) => o,
+            None => Ordering::Greater,
+        }
+    }
+}
+
+impl PartialOrd for Point {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match self.x.partial_cmp(&other.x) {
+            Some(Ordering::Equal) => self.y.partial_cmp(&other.y),
+            other => other,
+        }
+    }
+}
+
 /// A triangle, represented by indexes into a vertice list.
 #[derive(Debug, PartialEq)]
-pub struct Triangle(usize, usize, usize);
+pub struct Triangle(pub usize, pub usize, pub usize);
 
 /// An edge, represented by indexes into a vertice list.
 #[derive(Debug, Clone)]
@@ -26,7 +54,7 @@ struct Edge(usize, usize);
 
 impl PartialEq for Edge {
     /// Compare edges regardless of directionality.
-    fn eq(&self, other: &Edge) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         (self.0 == other.1 && self.1 == other.0) || (self.0 == other.0 && self.1 == other.1)
     }
 }
@@ -47,7 +75,14 @@ impl<'a, T: 'a> Index<usize> for TwoSlices<'a, T> {
     }
 }
 
-/// Triangulate a given set of points. The returned triangles are indices into the list of points.
+/// Generate the Delaunay triangulation of given set of points.
+///
+/// It takes a slice of points, and returns a vector of triangles arranged in clockwise order. The
+/// list of points must have a least three entries, otherwise this function will panic. The points
+/// *needs* to be sorted by increasing `x` value. The comparison operators on `Point` will respect
+/// this, so you can simply call `sort()` on your points list if necessary.
+///
+/// The returned triangles are indices into the input slice of points.
 pub fn triangulate(points: &[Point]) -> Vec<Triangle> {
     // Make sure we have enough points to do a triangulation.
     let points_count = points.len();
@@ -166,18 +201,18 @@ mod tests {
 
     #[test]
     fn test_simple() {
-        let points = [Point::new(10.0, 10.0), Point::new(25.0, 15.0), Point::new(15.0, 25.0)];
+        let points = [Point::new(10.0, 10.0), Point::new(15.0, 25.0), Point::new(25.0, 15.0)];
         let tris: Vec<Triangle> = triangulate(&points);
 
         assert_eq!(tris.len(), 1);
-        assert_eq!(tris[..], [Triangle(1, 0, 2)][..]);
+        assert_eq!(tris[..], [Triangle(0, 1, 2)][..]);
     }
 
     #[test]
     fn test_four_triangles() {
         let points = [Point::new(10.0, 10.0),
-                      Point::new(25.0, 15.0),
                       Point::new(15.0, 25.0),
+                      Point::new(25.0, 15.0),
                       Point::new(30.0, 25.0),
                       Point::new(40.0, 15.0)];
 
@@ -185,7 +220,7 @@ mod tests {
         assert_eq!(tris.len(), 4);
 
         let expected_tris =
-            [Triangle(1, 0, 2), Triangle(1, 2, 3), Triangle(0, 1, 4), Triangle(1, 3, 4)];
+            [Triangle(0, 1, 2), Triangle(2, 1, 3), Triangle(0, 2, 4), Triangle(2, 3, 4)];
         assert_eq!(tris[..], expected_tris[..]);
     }
 
@@ -201,73 +236,75 @@ mod tests {
 
     #[test]
     fn test_complex() {
-        let points = [Point::new(601.0, 535.0),
-                      Point::new(895.0, 666.0),
-                      Point::new(876.0, 110.0),
-                      Point::new(448.0, 36.0),
-                      Point::new(829.0, 512.0),
-                      Point::new(742.0, 363.0),
-                      Point::new(267.0, 152.0),
-                      Point::new(331.0, 244.0),
-                      Point::new(623.0, 335.0),
-                      Point::new(245.0, 119.0),
-                      Point::new(104.0, 522.0),
-                      Point::new(285.0, 561.0),
-                      Point::new(282.0, 17.0),
-                      Point::new(836.0, 20.0),
-                      Point::new(667.0, 462.0),
+        let points = [Point::new(11.0, 264.0),
                       Point::new(65.0, 216.0),
-                      Point::new(839.0, 178.0),
-                      Point::new(11.0, 264.0),
-                      Point::new(181.0, 479.0),
+                      Point::new(104.0, 522.0),
                       Point::new(168.0, 90.0),
-                      Point::new(348.0, 504.0),
-                      Point::new(688.0, 605.0),
+                      Point::new(181.0, 479.0),
+                      Point::new(245.0, 119.0),
+                      Point::new(267.0, 152.0),
+                      Point::new(282.0, 17.0),
+                      Point::new(285.0, 561.0),
                       Point::new(329.0, 432.0),
+                      Point::new(331.0, 244.0),
+                      Point::new(348.0, 504.0),
+                      Point::new(448.0, 36.0),
+                      Point::new(450.0, 514.0),
+                      Point::new(601.0, 535.0),
+                      Point::new(623.0, 335.0),
                       Point::new(627.0, 461.0),
-                      Point::new(450.0, 514.0)];
+                      Point::new(667.0, 462.0),
+                      Point::new(688.0, 605.0),
+                      Point::new(742.0, 363.0),
+                      Point::new(829.0, 512.0),
+                      Point::new(836.0, 20.0),
+                      Point::new(839.0, 178.0),
+                      Point::new(876.0, 110.0),
+                      Point::new(895.0, 666.0)];
+
+        println!("{:?}", points);
 
         let tris: Vec<Triangle> = triangulate(&points);
 
-        let expected_tris = [Triangle(1, 2, 4),
-                             Triangle(3, 6, 7),
-                             Triangle(3, 7, 8),
-                             Triangle(6, 3, 12),
-                             Triangle(9, 6, 12),
-                             Triangle(12, 3, 13),
-                             Triangle(4, 5, 14),
-                             Triangle(5, 8, 14),
-                             Triangle(7, 6, 15),
-                             Triangle(4, 2, 16),
-                             Triangle(5, 4, 16),
-                             Triangle(8, 5, 16),
-                             Triangle(3, 8, 16),
-                             Triangle(13, 3, 16),
-                             Triangle(2, 13, 16),
-                             Triangle(10, 11, 18),
-                             Triangle(7, 15, 18),
-                             Triangle(15, 17, 18),
-                             Triangle(17, 10, 18),
-                             Triangle(6, 9, 19),
-                             Triangle(15, 6, 19),
-                             Triangle(9, 12, 19),
-                             Triangle(17, 15, 19),
-                             Triangle(1, 4, 21),
-                             Triangle(4, 14, 21),
-                             Triangle(14, 0, 21),
-                             Triangle(8, 7, 22),
-                             Triangle(7, 18, 22),
-                             Triangle(18, 11, 22),
-                             Triangle(11, 20, 22),
-                             Triangle(0, 14, 23),
-                             Triangle(14, 8, 23),
-                             Triangle(20, 11, 24),
-                             Triangle(11, 21, 24),
-                             Triangle(21, 0, 24),
-                             Triangle(8, 22, 24),
-                             Triangle(23, 8, 24),
-                             Triangle(0, 23, 24),
-                             Triangle(22, 20, 24)];
+        let expected_tris = [Triangle(0, 1, 3),
+                             Triangle(1, 0, 4),
+                             Triangle(0, 2, 4),
+                             Triangle(3, 1, 6),
+                             Triangle(5, 3, 6),
+                             Triangle(3, 5, 7),
+                             Triangle(5, 6, 7),
+                             Triangle(4, 2, 8),
+                             Triangle(4, 8, 9),
+                             Triangle(1, 4, 10),
+                             Triangle(6, 1, 10),
+                             Triangle(4, 9, 10),
+                             Triangle(9, 8, 11),
+                             Triangle(7, 6, 12),
+                             Triangle(6, 10, 12),
+                             Triangle(11, 8, 13),
+                             Triangle(9, 11, 13),
+                             Triangle(10, 9, 15),
+                             Triangle(9, 13, 15),
+                             Triangle(12, 10, 15),
+                             Triangle(13, 14, 16),
+                             Triangle(15, 13, 16),
+                             Triangle(16, 14, 17),
+                             Triangle(15, 16, 17),
+                             Triangle(13, 8, 18),
+                             Triangle(14, 13, 18),
+                             Triangle(17, 14, 18),
+                             Triangle(15, 17, 19),
+                             Triangle(17, 18, 20),
+                             Triangle(19, 17, 20),
+                             Triangle(7, 12, 21),
+                             Triangle(12, 15, 22),
+                             Triangle(21, 12, 22),
+                             Triangle(15, 19, 22),
+                             Triangle(19, 20, 22),
+                             Triangle(22, 20, 23),
+                             Triangle(21, 22, 23),
+                             Triangle(20, 18, 24),
+                             Triangle(23, 20, 24)];
 
         assert_eq!(tris.len(), 39);
         assert_eq!(tris[..], expected_tris[..]);
