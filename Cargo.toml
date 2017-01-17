@@ -1,6 +1,6 @@
 [package]
 name = "rtriangulate"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Samuel Loretan <tynril@gmail.com>"]
 license = "MIT"
 description = "Delaunay triangulation on a set of points"
