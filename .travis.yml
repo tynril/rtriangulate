@@ -1,5 +1,5 @@
-sudo: false
 language: rust
+sudo: required
 
 addons:
   apt:
@@ -32,7 +32,7 @@ script:
 
 after_success:
 - travis-cargo --only stable doc-upload
-- travis-cargo coveralls --no-sudo --verify
+- travis-cargo coveralls --verify
 
 env:
   global:
