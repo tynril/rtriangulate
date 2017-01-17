@@ -366,4 +366,21 @@ mod tests {
         assert_eq!(tris.len(), 39);
         assert_eq!(tris[..], expected_tris[..]);
     }
+
+    #[test]
+    #[should_panic]
+    fn test_less_than_three_points() {
+        let points = [Point::new(10.0, 10.0)];
+        triangulate(&points);
+    }
+
+    #[test]
+    fn test_points_ordering() {
+        let mut unsorted_points =
+            [Point::new(10.0, 7.5), Point::new(5.0, 5.0), Point::new(10.0, 5.0)];
+        unsorted_points.sort();
+
+        assert_eq!(unsorted_points,
+                   [Point::new(5.0, 5.0), Point::new(10.0, 5.0), Point::new(10.0, 7.5)]);
+    }
 }
