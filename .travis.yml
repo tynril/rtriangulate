@@ -32,7 +32,7 @@ script:
 
 after_success:
 - travis-cargo --only stable doc-upload
-- travis-cargo coveralls --verify
+- travis-cargo coveralls
 
 env:
   global:
