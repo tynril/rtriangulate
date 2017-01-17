@@ -1,8 +1,40 @@
-// Copyright 2017 Samuel Loretan <tynril@gmail.com>
+// Copyright 2017 Samuel Loretan <tynril@gmail.com> -- See LICENSE file
 
-//! Triangulate a set of points
+//! A Rust implementation of the Delaunay triangulation algorithm presented by
+//! [Paul Bourke](http://paulbourke.net/papers/triangulate/).
+//!
+//! ## Usage
+//!
+//! Add the rtriangulate dependency to `Cargo.toml`:
+//!
+//! ```toml
+//! [dependencies]
+//! rtriangulate = "0.1"
+//! ```
+//!
+//! And use the crate as such:
+//!
+//! ```rust
+//! extern crate rtriangulate;
+//!
+//! use rtriangulate::{Point, Triangle, triangulate};
+//!
+//! # fn main() {
+//!     // A list of points (which has to be sorted on x).
+//!     let points = [Point::new(10.0, 50.0), Point::new(30.0, 40.0), Point::new(25.0, 40.0)];
+//!     let triangles = triangulate(&points);
+//!
+//!     assert_eq!(triangles, [Triangle(0, 1, 2)]);
+//! # }
+//! ```
 
-/// A two dimentional point.
+use std::cmp::Ordering;
+use std::ops::Index;
+
+/// A two-dimensional point.
+///
+/// Compares so that it can easily be sorted in ascending `x` order, as required by the
+/// `triangulate` function.
 #[derive(Clone, Copy, Debug)]
 pub struct Point {
     pub x: f64,
@@ -15,8 +47,6 @@ impl Point {
         Point { x: x, y: y }
     }
 }
-
-use std::cmp::Ordering;
 
 impl PartialEq for Point {
     fn eq(&self, other: &Self) -> bool {
@@ -44,13 +74,20 @@ impl PartialOrd for Point {
     }
 }
 
-/// A triangle, represented by indexes into a vertice list.
+/// A triangle, represented by indexes into a list of points.
 #[derive(Debug, PartialEq)]
 pub struct Triangle(pub usize, pub usize, pub usize);
 
-/// An edge, represented by indexes into a vertice list.
+/// An edge, represented by indexes into a list of points.
+///
+/// When compared, ignore the directionality of the edge, such as:
+///
+/// ```rust
+/// use rtriangulate::Edge;
+/// assert_eq!(Edge(0, 1), Edge(1, 0));
+/// ```
 #[derive(Debug, Clone)]
-struct Edge(usize, usize);
+pub struct Edge(pub usize, pub usize);
 
 impl PartialEq for Edge {
     /// Compare edges regardless of directionality.
@@ -59,10 +96,12 @@ impl PartialEq for Edge {
     }
 }
 
-/// An indexable view over two slices.
+/// A view over two slices that can be indexed seamlessly across both.
+///
+/// This is used internally by the `triangulate` function as a way to treat the supertriangle
+/// vertices as any other vertice, but without having to modify the input list of vertices.
 struct TwoSlices<'a, T: 'a>(&'a [T], &'a [T]);
 
-use std::ops::Index;
 impl<'a, T: 'a> Index<usize> for TwoSlices<'a, T> {
     type Output = T;
     fn index(&self, index: usize) -> &T {
@@ -83,6 +122,24 @@ impl<'a, T: 'a> Index<usize> for TwoSlices<'a, T> {
 /// this, so you can simply call `sort()` on your points list if necessary.
 ///
 /// The returned triangles are indices into the input slice of points.
+///
+/// Example:
+///
+/// ```rust
+/// use rtriangulate::{Point, Triangle, triangulate};
+///
+/// // Note that the points are sorted in ascending order of x.
+/// let points = [
+///     Point::new(10.0, 10.0), Point::new(15.0, 25.0), Point::new(25.0, 15.0),
+///     Point::new(30.0, 25.0), Point::new(40.0, 15.0)
+/// ];
+///
+/// let triangles = triangulate(&points);
+/// assert_eq!(
+///     triangles,
+///     [Triangle(0, 1, 2), Triangle(2, 1, 3), Triangle(0, 2, 4), Triangle(2, 3, 4)]
+/// );
+/// ```
 pub fn triangulate(points: &[Point]) -> Vec<Triangle> {
     // Make sure we have enough points to do a triangulation.
     let points_count = points.len();
