@@ -21,7 +21,7 @@
 //!
 //! # fn main() {
 //! // A list of points (which has to be sorted on x).
-//! let points = [Point::new(10.0, 50.0), Point::new(30.0, 40.0), Point::new(25.0, 40.0)];
+//! let points = [Point::new(10.0, 50.0), Point::new(25.0, 40.0), Point::new(30.0, 40.0)];
 //! let triangles = triangulate(&points);
 //!
 //! assert_eq!(triangles, [Triangle(0, 1, 2)]);
