@@ -1,10 +1,11 @@
 [package]
 name = "rtriangulate"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Samuel Loretan <tynril@gmail.com>"]
 license = "MIT"
 description = "Delaunay triangulation on a set of points"
 repository = "https://github.com/tynril/rtriangulate"
+documentation = "https://tynril.github.io/rtriangulate"
 keywords = ["delaunay", "triangulation", "bourke"]
 readme = "README.md"
 
