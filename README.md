@@ -1,7 +1,14 @@
 # rtriangulate
 
+[![crates.io](https://img.shields.io/crates/v/rtriangulate.svg)](https://crates.io/crates/rtriangulate)
+[![Build Status](https://travis-ci.org/tynril/rtriangulate.svg?branch=master)](https://travis-ci.org/tynril/rtriangulate)
+[![Coverage Status](https://coveralls.io/repos/github/tynril/rtriangulate/badge.svg?branch=master)](https://coveralls.io/github/tynril/rtriangulate?branch=master)
+
 A Rust implementation of the Delaunay triangulation algorithm presented by
 [Paul Bourke](http://paulbourke.net/papers/triangulate/).
+
+Find the crate documentation on [docs.rs](https://docs.rs/rtriangulate), or
+[here on Github](https://tynril.github.io/rtriangulate).
 
 This was developed as an exercise to get more used to Rust. As far as I know, it works, but it
 might not. Also, this is a O(n<sup>1.5</sup>) (approximatively) algorithm, it's not parallelized,
