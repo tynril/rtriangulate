@@ -50,52 +50,51 @@ fn bench_three_points(bench: &mut Bencher) {
 
 fn bench_ten_points(bench: &mut Bencher) {
     let points = &POINTS[..10];
-    bench.iter(|| triangulate(&points));
+    bench.iter(|| triangulate(points));
 }
 
 fn bench_twenty_points(bench: &mut Bencher) {
     let points = &POINTS[..20];
-    bench.iter(|| triangulate(&points));
+    bench.iter(|| triangulate(points));
 }
 
 fn bench_thirty_points(bench: &mut Bencher) {
     let points = &POINTS[..30];
-    bench.iter(|| triangulate(&points));
+    bench.iter(|| triangulate(points));
 }
 
 fn bench_forty_points(bench: &mut Bencher) {
     let points = &POINTS[..40];
-    bench.iter(|| triangulate(&points));
+    bench.iter(|| triangulate(points));
 }
 
 fn bench_fifty_points(bench: &mut Bencher) {
     let points = &POINTS[..50];
-    bench.iter(|| triangulate(&points));
+    bench.iter(|| triangulate(points));
 }
 
 fn bench_sixty_points(bench: &mut Bencher) {
     let points = &POINTS[..60];
-    bench.iter(|| triangulate(&points));
+    bench.iter(|| triangulate(points));
 }
-
 fn bench_seventy_points(bench: &mut Bencher) {
     let points = &POINTS[..70];
-    bench.iter(|| triangulate(&points));
+    bench.iter(|| triangulate(points));
 }
 
 fn bench_eighty_points(bench: &mut Bencher) {
     let points = &POINTS[..80];
-    bench.iter(|| triangulate(&points));
+    bench.iter(|| triangulate(points));
 }
 
 fn bench_ninety_points(bench: &mut Bencher) {
     let points = &POINTS[..90];
-    bench.iter(|| triangulate(&points));
+    bench.iter(|| triangulate(points));
 }
 
 fn bench_one_hundred_points(bench: &mut Bencher) {
     let points = &POINTS[..100];
-    bench.iter(|| triangulate(&points));
+    bench.iter(|| triangulate(points));
 }
 
 benchmark_group!(benches,
