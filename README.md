@@ -20,7 +20,7 @@ Add the rtriangulate dependency to `Cargo.toml`:
 
 ```toml
 [dependencies]
-rtriangulate = "0.1"
+rtriangulate = "0.2"
 ```
 
 And use the crate as such:
@@ -33,7 +33,7 @@ use rtriangulate::{Point, triangulate};
 fn main() {
     // A list of points (which has to be sorted on x).
     let points = [Point::new(10.0, 50.0), Point::new(25.0, 40.0), Point::new(30.0, 40.0)];
-    let triangles = triangulate(&points);
+    let triangles = triangulate(&points).unwrap();
 
     println!("{:?}", triangles); // [Triangle(1, 0, 2)]
 }

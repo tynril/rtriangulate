@@ -9,7 +9,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! rtriangulate = "0.1"
+//! rtriangulate = "0.2"
 //! ```
 //!
 //! And use the crate as such:
@@ -22,7 +22,7 @@
 //! # fn main() {
 //! // A list of points (which has to be sorted on x).
 //! let points = [Point::new(10.0, 50.0), Point::new(25.0, 40.0), Point::new(30.0, 40.0)];
-//! let triangles = triangulate(&points);
+//! let triangles = triangulate(&points).unwrap();
 //!
 //! assert_eq!(triangles, [Triangle(1, 0, 2)]);
 //! # }
@@ -31,11 +31,20 @@
 use std::cmp::Ordering;
 use std::ops::Index;
 
+pub type Result<T> = std::result::Result<T, TriangulateError>;
+
+/// Possible triangulation errors.
+#[derive(Debug)]
+pub enum TriangulateError {
+    /// At least three points are necessary to triangulate.
+    NotEnoughPoints,
+}
+
 /// A two-dimensional point.
 ///
 /// Compares so that it can easily be sorted in ascending `x` order, as required by the
 /// `triangulate` function.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Point {
     pub x: f64,
     pub y: f64,
@@ -45,12 +54,6 @@ impl Point {
     /// Makes a new point from xy coordinates.
     pub fn new(x: f64, y: f64) -> Point {
         Point { x: x, y: y }
-    }
-}
-
-impl PartialEq for Point {
-    fn eq(&self, other: &Self) -> bool {
-        self.x == other.x && self.y == other.y
     }
 }
 
@@ -134,17 +137,17 @@ impl<'a, T: 'a> Index<usize> for TwoSlices<'a, T> {
 ///     Point::new(30.0, 25.0), Point::new(40.0, 15.0)
 /// ];
 ///
-/// let triangles = triangulate(&points);
+/// let triangles = triangulate(&points).unwrap();
 /// assert_eq!(
 ///     triangles,
 ///     [Triangle(0, 1, 2), Triangle(2, 1, 3), Triangle(0, 2, 4), Triangle(2, 3, 4)]
 /// );
 /// ```
-pub fn triangulate(points: &[Point]) -> Vec<Triangle> {
+pub fn triangulate(points: &[Point]) -> Result<Vec<Triangle>> {
     // Make sure we have enough points to do a triangulation.
     let points_count = points.len();
     if points_count < 3 {
-        panic!("Can't triangulate less than three points.")
+        return Err(TriangulateError::NotEnoughPoints);
     }
 
     // Find the bounds of the space that contains our points.
@@ -169,13 +172,13 @@ pub fn triangulate(points: &[Point]) -> Vec<Triangle> {
     let mut triangles = vec![Triangle(points_count, points_count + 1, points_count + 2)];
 
     // Include each of the input point into the mesh.
+    let mut edges = Vec::<Edge>::with_capacity(18);
+    let mut to_remove = Vec::<usize>::with_capacity(10);
     for i in 0..points_count {
-        // Storage for the edges
-        let mut edges = Vec::<Edge>::new();
         triangles.retain(|t| {
             if in_circumcircle(all_points[i],
                                (all_points[t.0], all_points[t.1], all_points[t.2])) {
-                edges.extend([Edge(t.0, t.1), Edge(t.1, t.2), Edge(t.2, t.0)].iter().cloned());
+                edges.extend_from_slice(&[Edge(t.0, t.1), Edge(t.1, t.2), Edge(t.2, t.0)]);
                 false
             } else {
                 true
@@ -183,12 +186,11 @@ pub fn triangulate(points: &[Point]) -> Vec<Triangle> {
         });
 
         // Remove duplicate edges (both pairs).
-        let mut to_remove = Vec::<usize>::new();
         let edges_count = edges.len();
         for (j, e1) in edges.iter().enumerate().rev().skip(1) {
             for (k, e2) in edges.iter().enumerate().rev().take(edges_count - j - 1) {
                 if e1 == e2 {
-                    to_remove.extend([j, k].iter().cloned());
+                    to_remove.extend_from_slice(&[j, k]);
                     break;
                 }
             }
@@ -197,55 +199,52 @@ pub fn triangulate(points: &[Point]) -> Vec<Triangle> {
         for j in to_remove.iter().rev() {
             edges.remove(*j);
         }
+        to_remove.clear();
 
         // Form new triangles from the remaining edges. Edges are added in clockwise order.
         triangles.extend(edges.iter().map(|e| Triangle(e.0, e.1, i)));
+        edges.clear();
     }
 
     // Remove triangles with supertriangle vertices
     triangles.retain(|t| t.0 < points_count && t.1 < points_count && t.2 < points_count);
 
-    triangles
+    Ok(triangles)
 }
 
 /// Returns true if the point lies inside (or on the edge of) the circumcircle made from the
-/// triangle.
-fn in_circumcircle(point: Point, triangle: (Point, Point, Point)) -> bool {
+/// triangle (t0, t1, t2).
+fn in_circumcircle(point: Point, (t0, t1, t2): (Point, Point, Point)) -> bool {
     // Handle coincident points in the input triangle.
-    if (triangle.0.y - triangle.1.y).abs() < std::f64::EPSILON &&
-       (triangle.1.y - triangle.2.y).abs() < std::f64::EPSILON {
+    if (t0.y - t1.y).abs() < std::f64::EPSILON && (t1.y - t2.y).abs() < std::f64::EPSILON {
         return false;
     }
 
     // Compute the center of the triangle's circumcircle.
     let mut circumcircle_center = Point::new(0.0, 0.0);
-    if (triangle.1.y - triangle.0.y).abs() < std::f64::EPSILON {
-        let mid = 0.0 - (triangle.2.x - triangle.1.x) / (triangle.2.y - triangle.1.y);
-        let mid_point = Point::new((triangle.1.x + triangle.2.x) * 0.5,
-                                   (triangle.1.y + triangle.2.y) * 0.5);
-        circumcircle_center.x = (triangle.1.x + triangle.0.x) * 0.5;
+    if (t1.y - t0.y).abs() < std::f64::EPSILON {
+        let mid = 0.0 - (t2.x - t1.x) / (t2.y - t1.y);
+        let mid_point = Point::new((t1.x + t2.x) * 0.5, (t1.y + t2.y) * 0.5);
+        circumcircle_center.x = (t1.x + t0.x) * 0.5;
         circumcircle_center.y = mid * (circumcircle_center.x - mid_point.x) + mid_point.y;
-    } else if (triangle.2.y - triangle.1.y).abs() < std::f64::EPSILON {
-        let mid = 0.0 - (triangle.1.x - triangle.0.x) / (triangle.1.y - triangle.0.y);
-        let mid_point = Point::new((triangle.0.x + triangle.1.x) * 0.5,
-                                   (triangle.0.y + triangle.1.y) * 0.5);
-        circumcircle_center.x = (triangle.2.x + triangle.1.x) * 0.5;
+    } else if (t2.y - t1.y).abs() < std::f64::EPSILON {
+        let mid = 0.0 - (t1.x - t0.x) / (t1.y - t0.y);
+        let mid_point = Point::new((t0.x + t1.x) * 0.5, (t0.y + t1.y) * 0.5);
+        circumcircle_center.x = (t2.x + t1.x) * 0.5;
         circumcircle_center.y = mid * (circumcircle_center.x - mid_point.x) + mid_point.y;
     } else {
-        let mid1 = 0.0 - (triangle.1.x - triangle.0.x) / (triangle.1.y - triangle.0.y);
-        let mid2 = 0.0 - (triangle.2.x - triangle.1.x) / (triangle.2.y - triangle.1.y);
-        let mid_point1 = Point::new((triangle.0.x + triangle.1.x) * 0.5,
-                                    (triangle.0.y + triangle.1.y) * 0.5);
-        let mid_point2 = Point::new((triangle.1.x + triangle.2.x) * 0.5,
-                                    (triangle.1.y + triangle.2.y) * 0.5);
+        let mid1 = 0.0 - (t1.x - t0.x) / (t1.y - t0.y);
+        let mid2 = 0.0 - (t2.x - t1.x) / (t2.y - t1.y);
+        let mid_point1 = Point::new((t0.x + t1.x) * 0.5, (t0.y + t1.y) * 0.5);
+        let mid_point2 = Point::new((t1.x + t2.x) * 0.5, (t1.y + t2.y) * 0.5);
         circumcircle_center.x = (mid1 * mid_point1.x - mid2 * mid_point2.x + mid_point2.y -
                                  mid_point1.y) / (mid1 - mid2);
         circumcircle_center.y = mid1 * (circumcircle_center.x - mid_point1.x) + mid_point1.y;
     }
 
     // Check the radius of the circumcircle against the point's distance from its center.
-    let circumcircle_radius_sq = (triangle.1.x - circumcircle_center.x).powf(2.0) +
-                                 (triangle.1.y - circumcircle_center.y).powf(2.0);
+    let circumcircle_radius_sq = (t1.x - circumcircle_center.x).powf(2.0) +
+                                 (t1.y - circumcircle_center.y).powf(2.0);
     let point_distance_sq = (point.x - circumcircle_center.x).powf(2.0) +
                             (point.y - circumcircle_center.y).powf(2.0);
 
@@ -259,7 +258,7 @@ mod tests {
     #[test]
     fn test_simple() {
         let points = [Point::new(10.0, 10.0), Point::new(15.0, 25.0), Point::new(25.0, 15.0)];
-        let tris: Vec<Triangle> = triangulate(&points);
+        let tris: Vec<Triangle> = triangulate(&points).unwrap();
 
         assert_eq!(tris.len(), 1);
         assert_eq!(tris[..], [Triangle(0, 1, 2)][..]);
@@ -273,7 +272,7 @@ mod tests {
                       Point::new(30.0, 25.0),
                       Point::new(40.0, 15.0)];
 
-        let tris: Vec<Triangle> = triangulate(&points);
+        let tris: Vec<Triangle> = triangulate(&points).unwrap();
         assert_eq!(tris.len(), 4);
 
         let expected_tris =
@@ -285,7 +284,7 @@ mod tests {
     fn test_overlapping() {
         let points = vec![Point::new(10.0, 10.0), Point::new(25.0, 15.0), Point::new(25.0, 15.0)];
 
-        let tris: Vec<Triangle> = triangulate(&points);
+        let tris: Vec<Triangle> = triangulate(&points).unwrap();
 
         assert_eq!(tris.len(), 1);
         assert_eq!(tris[..], [Triangle(0, 1, 2)][..]);
@@ -321,7 +320,7 @@ mod tests {
 
         println!("{:?}", points);
 
-        let tris: Vec<Triangle> = triangulate(&points);
+        let tris: Vec<Triangle> = triangulate(&points).unwrap();
 
         let expected_tris = [Triangle(0, 1, 3),
                              Triangle(1, 0, 4),
@@ -371,7 +370,7 @@ mod tests {
     #[should_panic]
     fn test_less_than_three_points() {
         let points = [Point::new(10.0, 10.0)];
-        triangulate(&points);
+        triangulate(&points).unwrap();
     }
 
     #[test]
