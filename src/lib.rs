@@ -173,28 +173,25 @@ pub fn triangulate(points: &[Point]) -> Result<Vec<Triangle>> {
 
     // Include each of the input point into the mesh.
     let mut edges = Vec::<Edge>::with_capacity(18);
-    let mut highest_edges_count: u32 = 0;
+    let mut to_remove = Vec::<usize>::with_capacity(10);
     for i in 0..points_count {
         // Adding relevant edges.
         triangles.retain(|ref t| {
             if in_circumcircle(all_points[i],
                                (all_points[t.0], all_points[t.1], all_points[t.2])) {
-                edges.extend([Edge(t.0, t.1), Edge(t.1, t.2), Edge(t.2, t.0)].iter().cloned());
+                edges.extend_from_slice(&[Edge(t.0, t.1), Edge(t.1, t.2), Edge(t.2, t.0)]);
                 false
             } else {
                 true
             }
         });
 
-        highest_edges_count = std::cmp::max(edges.len() as u32, highest_edges_count);
-
         // Remove duplicate edges (both pairs).
-        let mut to_remove = Vec::<usize>::new();
         let edges_count = edges.len();
         for (j, ref e1) in edges.iter().enumerate().rev().skip(1) {
             for (k, ref e2) in edges.iter().enumerate().rev().take(edges_count - j - 1) {
                 if e1 == e2 {
-                    to_remove.extend(&[j, k]);
+                    to_remove.extend_from_slice(&[j, k]);
                     break;
                 }
             }
@@ -203,6 +200,7 @@ pub fn triangulate(points: &[Point]) -> Result<Vec<Triangle>> {
         for j in to_remove.iter().rev() {
             edges.remove(*j);
         }
+        to_remove.clear();
 
         // Form new triangles from the remaining edges. Edges are added in clockwise order.
         triangles.extend(edges.iter().map(|ref e| Triangle(e.0, e.1, i)));
