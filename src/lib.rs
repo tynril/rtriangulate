@@ -151,7 +151,7 @@ pub fn triangulate(points: &[Point]) -> Result<Vec<Triangle>> {
     }
 
     // Find the bounds of the space that contains our points.
-    let (min_point, max_point) = points.iter().fold((points[0], points[0]), |acc, ref p| {
+    let (min_point, max_point) = points.iter().fold((points[0], points[0]), |acc, p| {
         (Point::new(acc.0.x.min(p.x), acc.0.y.min(p.y)),
          Point::new(acc.1.x.max(p.x), acc.1.y.max(p.y)))
     });
@@ -175,8 +175,7 @@ pub fn triangulate(points: &[Point]) -> Result<Vec<Triangle>> {
     let mut edges = Vec::<Edge>::with_capacity(18);
     let mut to_remove = Vec::<usize>::with_capacity(10);
     for i in 0..points_count {
-        // Adding relevant edges.
-        triangles.retain(|ref t| {
+        triangles.retain(|t| {
             if in_circumcircle(all_points[i],
                                (all_points[t.0], all_points[t.1], all_points[t.2])) {
                 edges.extend_from_slice(&[Edge(t.0, t.1), Edge(t.1, t.2), Edge(t.2, t.0)]);
@@ -188,8 +187,8 @@ pub fn triangulate(points: &[Point]) -> Result<Vec<Triangle>> {
 
         // Remove duplicate edges (both pairs).
         let edges_count = edges.len();
-        for (j, ref e1) in edges.iter().enumerate().rev().skip(1) {
-            for (k, ref e2) in edges.iter().enumerate().rev().take(edges_count - j - 1) {
+        for (j, e1) in edges.iter().enumerate().rev().skip(1) {
+            for (k, e2) in edges.iter().enumerate().rev().take(edges_count - j - 1) {
                 if e1 == e2 {
                     to_remove.extend_from_slice(&[j, k]);
                     break;
@@ -203,12 +202,12 @@ pub fn triangulate(points: &[Point]) -> Result<Vec<Triangle>> {
         to_remove.clear();
 
         // Form new triangles from the remaining edges. Edges are added in clockwise order.
-        triangles.extend(edges.iter().map(|ref e| Triangle(e.0, e.1, i)));
+        triangles.extend(edges.iter().map(|e| Triangle(e.0, e.1, i)));
         edges.clear();
     }
 
     // Remove triangles with supertriangle vertices
-    triangles.retain(|ref t| t.0 < points_count && t.1 < points_count && t.2 < points_count);
+    triangles.retain(|t| t.0 < points_count && t.1 < points_count && t.2 < points_count);
 
     Ok(triangles)
 }
