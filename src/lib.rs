@@ -196,6 +196,7 @@ pub fn triangulate(points: &[Point]) -> Result<Vec<Triangle>> {
             }
         }
         to_remove.sort();
+        to_remove.dedup();
         for j in to_remove.iter().rev() {
             edges.remove(*j);
         }
@@ -318,8 +319,6 @@ mod tests {
                       Point::new(876.0, 110.0),
                       Point::new(895.0, 666.0)];
 
-        println!("{:?}", points);
-
         let tris: Vec<Triangle> = triangulate(&points).unwrap();
 
         let expected_tris = [Triangle(0, 1, 3),
@@ -364,6 +363,17 @@ mod tests {
 
         assert_eq!(tris.len(), 39);
         assert_eq!(tris[..], expected_tris[..]);
+    }
+
+    #[test]
+    fn test_coincident_points() {
+        let points = [Point::new(10.0, 10.0),
+                      Point::new(10.0, 10.0),
+                      Point::new(11.0, 10.0),
+                      Point::new(11.0, 10.0)];
+
+        let tris: Vec<Triangle> = triangulate(&points).unwrap();
+        assert_eq!(tris.len(), 0);
     }
 
     #[test]
