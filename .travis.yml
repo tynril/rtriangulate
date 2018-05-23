@@ -7,6 +7,7 @@ addons:
       - libcurl4-openssl-dev
       - libelf-dev
       - libdw-dev
+      - libbfd-dev
       - binutils-dev # optional: only required for the --verify flag of coveralls
 
 rust:
