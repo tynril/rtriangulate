@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["TriangulateError","Possible triangulation errors."]],"fn":[["triangulate","Generate the Delaunay triangulation of given set of points."]],"struct":[["Edge","An edge, represented by indexes into a list of points."],["Point","A two-dimensional point."],["Triangle","A triangle, represented by indexes into a list of points."]],"type":[["Result",""]]});
