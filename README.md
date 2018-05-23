@@ -20,7 +20,7 @@ Add the rtriangulate dependency to `Cargo.toml`:
 
 ```toml
 [dependencies]
-rtriangulate = "0.2"
+rtriangulate = "0.3"
 ```
 
 And use the crate as such:
@@ -28,11 +28,21 @@ And use the crate as such:
 ```rust
 extern crate rtriangulate;
 
-use rtriangulate::{Point, triangulate};
+use rtriangulate::{TriangulationPoint, triangulate};
 
 fn main() {
     // A list of points (which has to be sorted on x).
-    let points = [Point::new(10.0, 50.0), Point::new(25.0, 40.0), Point::new(30.0, 40.0)];
+    // Note that you can use your own point type, just implement the rtriangulate::Point trait.
+    let points = [
+        TriangulationPoint::new(10.0, 50.0),
+        TriangulationPoint::new(25.0, 40.0),
+        TriangulationPoint::new(30.0, 40.0)
+    ];
+
+    // In case you need to sort your points:
+    // points.sort_unstable_by(rtriangulate::sort_points);
+
+    // Do the triangulation.
     let triangles = triangulate(&points).unwrap();
 
     println!("{:?}", triangles); // [Triangle(1, 0, 2)]
