@@ -59,11 +59,9 @@ where
     T: FloatCore,
 {
     /// Returns the `x` component of this point.
-    #[inline]
     fn x(&self) -> T;
 
     /// Returns the `y` component of this point.
-    #[inline]
     fn y(&self) -> T;
 }
 
@@ -105,7 +103,7 @@ where
     /// Makes a new point from xy coordinates.
     #[inline(always)]
     pub fn new(x: T, y: T) -> Self {
-        TriangulationPoint { x: x, y: y }
+        TriangulationPoint { x, y }
     }
 
     /// A point located at the infinity.
