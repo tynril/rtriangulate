@@ -142,6 +142,23 @@ where
     }
 }
 
+impl<T> Point<T> for [T; 2]
+where
+    T: FloatCore,
+{
+    /// The `x` component of this triangulation point.
+    #[inline(always)]
+    fn x(&self) -> T {
+        self[0]
+    }
+
+    /// The `y` component of this triangulation point.
+    #[inline(always)]
+    fn y(&self) -> T {
+        self[1]
+    }
+}
+
 /// A triangle, represented by indexes into a list of points.
 #[derive(Debug, PartialEq)]
 pub struct Triangle(pub usize, pub usize, pub usize);
